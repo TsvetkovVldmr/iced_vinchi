@@ -1,17 +1,16 @@
-use std::path::PathBuf;
+pub mod song;
+
 use iced::{alignment, Element, Length, Settings};
-
-use iced::Sandbox;
-use iced::widget::{Button, Text, Column, Container, column, text, Row, container, row};
+use iced::widget::{Button,  Column, Container, column, text, Row, container};
 
 
-use iced::{Color, Command, Subscription};
+use iced::{Sandbox, Color};
 
 use iced::theme::Theme;
 
 use rfd::FileDialog;
+use crate::song::{Song, SongMessage};
 
-// TODO: 1. Убрать лишние контролы, переименовать типы
 // TODO: 2. Вынести всэ касающееся песен в отдельный файл
 // TODO: 3. Приделать меню сверху
 // TODO: 4. Приделать кнопки плэй и стоп снизу
@@ -63,29 +62,26 @@ impl Sandbox for Player {
                     .set_directory("/")
                     .pick_files();
 
-                match files {
-                    Some(files) => {
+                if let Some(files) = files {
 
-                        let songs = files
-                            .into_iter()
-                            .map(move |p| Song { name: p.file_name().unwrap().to_str().unwrap().to_string(), path: p });
+                    let songs = files
+                        .into_iter()
+                        .map(move |p| Song { name: p.file_name().unwrap().to_str().unwrap().to_string(), path: p });
 
-                        for song in songs {
-                            self.songs.push(song);
-                        }
+                    for song in songs {
+                        self.songs.push(song);
                     }
-                    None => {}
                 }
             },
-            Message::SongMessage(song) => {}
+            Message::SongMessage(_) => {}
         }
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
 
         let open = Button::new("Open").on_press(Message::Open);
 
-        let test: Vec<Element<_>> = self.songs.iter().map(|song| song.view().map(move |msg| Message::SongMessage(msg))).collect();
+        let test: Vec<Element<_>> = self.songs.iter().map(|song| song.view().map(Message::SongMessage)).collect();
 
         let songs = column(test);
 
@@ -94,7 +90,7 @@ impl Sandbox for Player {
 
         let row = Row::new().push(songs).push(col);
 
-        Container::new(row).center_x().center_y().width(iced::Length::Fill).height(iced::Length::Fill).into()
+        Container::new(row).center_x().center_y().width(Length::Fill).height(Length::Fill).into()
     }
 
     fn theme(&self) -> Theme {
@@ -102,25 +98,7 @@ impl Sandbox for Player {
     }
 }
 
-struct Song {
-    name: String,
-    path: PathBuf
-}
 
-impl Song {
-    fn view(&self) -> Element<SongMessage> {
-        let label = text(&self.name);
-
-        row![label]
-            .spacing(20)
-            .into()
-    }
-}
-
-#[derive(Debug, Clone)]
-enum SongMessage{
-    Ok
-}
 
 fn empty_message(message: &str) -> Element<'_, Message> {
     container(
